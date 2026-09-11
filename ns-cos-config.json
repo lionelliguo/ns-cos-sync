@@ -1,0 +1,136 @@
+{
+  "_help": {
+    "netstorage.profiles": "Multiple Akamai NetStorage CP Code profiles. Each profile can have its own host, cp_code, key_name, and key_secret.",
+    "sync.add_cp_code_to_cos_path": {
+      "true": "Add CP Code as the first COS directory, for example CP 123456 /uat/a.png -> COS 123456/uat/a.png.",
+      "false": "Do not automatically add CP Code to COS paths. Use cos_dest_prefix per profile if you need custom separation."
+    },
+    "sync.strip_redundant_zip_root": {
+      "true": "When extracting xxx.zip, if the ZIP contains top-level xxx/, strip that redundant folder so files land directly under xxx/.",
+      "false": "Keep ZIP internal paths exactly as-is under the extraction target folder."
+    },
+    "sync.strategy": {
+      "full": "Copy all source files every run.",
+      "incremental": "Copy only new or changed files based on state. Recommended for scheduled sync."
+    },
+    "sync.detect": {
+      "etag": "Use ETag/MD5 when available; fallback to LastModified+Size if missing.",
+      "last_modified": "Use LastModified+Size comparison."
+    },
+    "sync.extract_zip_on_ns_to_cos": {
+      "true": "When NS -> COS source file is .zip, upload extracted ZIP entries to COS instead of only uploading the zip file.",
+      "false": "Treat .zip files as normal files. COS -> NS never auto-extracts ZIP files."
+    },
+    "sync.zip_extract_to_folder": {
+      "true": "Extract xxx.zip to COS prefix xxx/.",
+      "false": "Extract entries directly to the destination prefix."
+    },
+    "stability_recommendation": {
+      "workers": "Use 1 worker to reduce concurrent pressure on NetStorage when SSL EOF / connection reset errors occur.",
+      "skip_failed_dirs": "Skip directories that fail listing after retries, and continue syncing other directories.",
+      "retry": "Use more attempts and longer timeout/backoff for unstable NetStorage connections."
+    },
+    "sync.prefer_list_metadata": {
+      "true": "Prefer metadata returned by NetStorage directory list and avoid per-file stat requests. Recommended for unstable/large NetStorage trees.",
+      "false": "Call NetStorage stat for each file to get per-file metadata."
+    },
+    "sync.stat_if_list_metadata_incomplete": {
+      "true": "Only call NetStorage stat when list metadata lacks usable ETag or LastModified+Size.",
+      "false": "Never call stat when list metadata is incomplete; use whatever list metadata is available."
+    },
+    "sync.failed_dirs_log": "Directory list failures are written here so failed dirs can be retried later.",
+    "sync.skip_success_log": "When true, load success-files.log and skip files that already have an OK src -> dst record. Useful for resume after interruption.",
+    "sync.copy_file_attempts": "Retry one file copy end-to-end this many times before writing it to failed-files.log.",
+    "copy_size_progress": "COPY PROGRESS prints total_size, bytes_done, bytes_copied, speed, and ETA based on file sizes from list/stat metadata.",
+    "zero_byte_upload": "For downloaded size=0, upload an explicit empty bytes payload to COS without adding a trailing slash, preserving file names such as .../Shipping_files/0.",
+    "list_cache": {
+      "read_list_cache=false": "Default. Re-list NetStorage directories and then save the result to list_cache_file if write_list_cache=true.",
+      "read_list_cache=true": "Skip NetStorage dir listing and read files/dirs from list_cache_file. Useful when listing is very slow and the tree has already been listed once.",
+      "write_list_cache=true": "After a real NetStorage dir list, save files/dirs to list_cache_file.",
+      "list_cache_file": "Supports placeholders {cp_code}, {source}, {source_hash}, {command}. Default avoids collision across CP codes/source paths."
+    },
+    "retry_policy": {
+      "copy_file_attempts": "Total per-file copy attempts. Set to 3: first try + retry attempts up to 3 total attempts, using exponential backoff between attempts.",
+      "retry.max_attempts": "HTTP request retry attempts. Set to 3, using exponential backoff.",
+      "transfer.ns_list_retries": "NetStorage directory list retry attempts. Set to 3, using exponential backoff."
+    }
+  },
+  "netstorage": {
+    "profiles": [
+      {
+        "name": "cp162959",
+        "host": "bbyapps-nsu.akamaihd.net",
+        "cp_code": "162959",
+        "key_name": "YOUR_KEY_NAME",
+        "key_secret": "YOUR_KEY_SECRET"
+      }
+    ]
+  },
+  "cos": {
+    "secret_id": "YOUR_SECRET_ID",
+    "secret_key": "YOUR_SECRET_KEY",
+    "region": "ap-singapore",
+    "bucket": "bby-cn-cnsh-prod-bcn-cos-cpc162959",
+    "appid": "1383997160",
+    "max_keys": 1000,
+    "expire": 7200
+  },
+  "sync": {
+    "strategy": "full",
+    "detect": "etag",
+    "overwrite": true,
+    "verify_target_exists": true,
+    "copy_dir_markers": true,
+    "prune_state": true,
+    "fail_log": "failed-sync.log",
+    "extract_zip_on_ns_to_cos": false,
+    "zip_extract_to_folder": false,
+    "zip_upload_original": false,
+    "add_cp_code_to_cos_path": true,
+    "strip_redundant_zip_root": true,
+    "prefer_list_metadata": true,
+    "stat_if_list_metadata_incomplete": false,
+    "success_log": "success-files.log",
+    "failed_files_log": "failed-files.log",
+    "failed_dirs_log": "failed-dirs.log",
+    "skip_success_log": true,
+    "copy_file_attempts": 3,
+    "read_list_cache": false,
+    "write_list_cache": true,
+    "list_cache_file": "list-dir-cache-{cp_code}-{source_hash}.json"
+  },
+  "state": {
+    "state_mode": "sharded",
+    "state_dir": "state-shards",
+    "state_meta_file": "state-meta.json",
+    "state_file": "state.json"
+  },
+  "schedule": {
+    "enabled": false,
+    "interval_seconds": 60
+  },
+  "retry": {
+    "max_attempts": 3,
+    "timeout_seconds": 180,
+    "base_sleep_seconds": 2.0,
+    "max_sleep_seconds": 30.0
+  },
+  "transfer": {
+    "workers": 4,
+    "temp_dir": null,
+    "keep_temp": false,
+    "skip_tls_verify": false,
+    "curl_log": null,
+    "quiet": false,
+    "continue_on_error": true,
+    "content_type": null,
+    "ns_list_retries": 3,
+    "ns_list_retry_sleep": 2.0,
+    "ns_list_max_retry_sleep": 30.0,
+    "skip_failed_dirs": true,
+    "list_progress_every_dirs": 1000,
+    "select_progress_every_files": 5000,
+    "copy_progress_every_files": 100,
+    "progress_interval_seconds": 30.0
+  }
+}

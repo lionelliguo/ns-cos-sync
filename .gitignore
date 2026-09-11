@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+
+# Credentials and local overrides
+ns-cos-config.local.json
+.env
+
+# Runtime state, caches, logs, and temporary files
+state.json
+state-shards/
+list-dir-cache-*.json
+*.log
+*.tmp
+.DS_Store
